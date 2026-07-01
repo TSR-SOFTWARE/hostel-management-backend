@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# wait-for-mongo.sh is the entrypoint — polls Mongo until ready, then runs migrations
+COPY docker/wait-for-mongo.sh /wait-for-mongo.sh
+RUN chmod +x /wait-for-mongo.sh
+
+ENTRYPOINT ["/wait-for-mongo.sh"]
+CMD ["python", "-m", "app.migrations.migrator"]
