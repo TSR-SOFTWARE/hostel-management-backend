@@ -22,7 +22,7 @@ jobs:
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
-        
+
       - name: Check Railway Token
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
@@ -32,10 +32,10 @@ jobs:
             echo "RAILWAY_TOKEN is set"
           fi
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
       - name: Deploy to Railway
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
           railway up --service chic-emotion
