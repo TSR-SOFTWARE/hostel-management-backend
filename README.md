@@ -24,6 +24,7 @@
 This is the **IAM (Identity & Access Management)** foundation for a multi-tenant Hostel Management SaaS platform.
 
 It supports:
+
 - Multiple hostel **owners** (tenants)
 - Multiple **hostels** under one owner
 - Role-based access control (RBAC) with fine-grained permissions
@@ -38,7 +39,7 @@ Every future module (Hostels, Students, Employees, Expenses, Inventory) depends 
 ## 2. Tech Stack
 
 | Layer        | Technology                          |
-|--------------|-------------------------------------|
+| ------------ | ----------------------------------- |
 | Framework    | FastAPI 0.111                       |
 | Validation   | Pydantic v2                         |
 | Database     | MongoDB 7.0 (Docker container)      |
@@ -117,29 +118,29 @@ MongoDB is used as the database. All collections use MongoDB's native `_id` (Obj
 
 Stores all system users (owners, managers, staff).
 
-| Field               | Type      | Description                                      |
-|---------------------|-----------|--------------------------------------------------|
-| `_id`               | ObjectId  | Primary key                                      |
-| `owner_id`          | string    | Reference to the owner user (for multi-tenancy)  |
-| `employee_id`       | string    | Link to employee record (future module)          |
-| `first_name`        | string    |                                                  |
-| `last_name`         | string    |                                                  |
-| `email`             | string    | Unique, lowercase, sparse index                  |
-| `mobile`            | string    | Unique, sparse index                             |
-| `password_hash`     | string    | BCrypt hash                                      |
-| `role_id`           | string    | Reference to `roles` collection                  |
-| `status`            | enum      | `active`, `inactive`, `locked`, `deleted`, `pending_verification` |
-| `last_login`        | datetime  |                                                  |
-| `failed_attempts`   | int       | Resets on successful login                       |
-| `is_locked`         | bool      |                                                  |
-| `locked_until`      | datetime  | Auto-unlock after this time                      |
-| `is_email_verified` | bool      |                                                  |
-| `is_mobile_verified`| bool      |                                                  |
-| `created_at`        | datetime  |                                                  |
-| `created_by`        | string    | User ID who created this record                  |
-| `updated_at`        | datetime  |                                                  |
-| `updated_by`        | string    |                                                  |
-| `deleted_at`        | datetime  | Soft delete — null means not deleted             |
+| Field                | Type     | Description                                                       |
+| -------------------- | -------- | ----------------------------------------------------------------- |
+| `_id`                | ObjectId | Primary key                                                       |
+| `owner_id`           | string   | Reference to the owner user (for multi-tenancy)                   |
+| `employee_id`        | string   | Link to employee record (future module)                           |
+| `first_name`         | string   |                                                                   |
+| `last_name`          | string   |                                                                   |
+| `email`              | string   | Unique, lowercase, sparse index                                   |
+| `mobile`             | string   | Unique, sparse index                                              |
+| `password_hash`      | string   | BCrypt hash                                                       |
+| `role_id`            | string   | Reference to `roles` collection                                   |
+| `status`             | enum     | `active`, `inactive`, `locked`, `deleted`, `pending_verification` |
+| `last_login`         | datetime |                                                                   |
+| `failed_attempts`    | int      | Resets on successful login                                        |
+| `is_locked`          | bool     |                                                                   |
+| `locked_until`       | datetime | Auto-unlock after this time                                       |
+| `is_email_verified`  | bool     |                                                                   |
+| `is_mobile_verified` | bool     |                                                                   |
+| `created_at`         | datetime |                                                                   |
+| `created_by`         | string   | User ID who created this record                                   |
+| `updated_at`         | datetime |                                                                   |
+| `updated_by`         | string   |                                                                   |
+| `deleted_at`         | datetime | Soft delete — null means not deleted                              |
 
 **Indexes:** `email` (unique, sparse), `mobile` (unique, sparse)
 
@@ -147,13 +148,13 @@ Stores all system users (owners, managers, staff).
 
 ### Collection: `roles`
 
-| Field          | Type     | Description                        |
-|----------------|----------|------------------------------------|
-| `_id`          | ObjectId |                                    |
-| `role_name`    | string   | e.g., Owner, Manager, Chef         |
-| `description`  | string   |                                    |
-| `is_system_role` | bool   | System roles cannot be deleted     |
-| `created_at`   | datetime |                                    |
+| Field            | Type     | Description                    |
+| ---------------- | -------- | ------------------------------ |
+| `_id`            | ObjectId |                                |
+| `role_name`      | string   | e.g., Owner, Manager, Chef     |
+| `description`    | string   |                                |
+| `is_system_role` | bool     | System roles cannot be deleted |
+| `created_at`     | datetime |                                |
 
 **Seeded roles:** Owner, Manager, Supervisor, Chef, Cleaning Head, Helper
 
@@ -162,7 +163,7 @@ Stores all system users (owners, managers, staff).
 ### Collection: `permissions`
 
 | Field         | Type     | Description                        |
-|---------------|----------|------------------------------------|
+| ------------- | -------- | ---------------------------------- |
 | `_id`         | ObjectId |                                    |
 | `module`      | string   | e.g., Student, Expense, Hostel     |
 | `action`      | string   | e.g., Create, Read, Update, Delete |
@@ -174,26 +175,26 @@ Stores all system users (owners, managers, staff).
 
 Many-to-many join between `roles` and `permissions`.
 
-| Field           | Type   | Description              |
-|-----------------|--------|--------------------------|
-| `_id`           | ObjectId |                        |
-| `role_id`       | string | Reference to `roles`     |
-| `permission_id` | string | Reference to `permissions` |
+| Field           | Type     | Description                |
+| --------------- | -------- | -------------------------- |
+| `_id`           | ObjectId |                            |
+| `role_id`       | string   | Reference to `roles`       |
+| `permission_id` | string   | Reference to `permissions` |
 
 ---
 
 ### Collection: `refresh_tokens`
 
-| Field        | Type     | Description                                      |
-|--------------|----------|--------------------------------------------------|
-| `_id`        | ObjectId |                                                  |
-| `user_id`    | string   |                                                  |
-| `token_hash` | string   | SHA-256 hash of the raw refresh token            |
-| `expiry_date`| datetime |                                                  |
-| `created_at` | datetime |                                                  |
-| `revoked_at` | datetime | Null = active, set = revoked                     |
-| `ip_address` | string   |                                                  |
-| `device_info`| string   | User-Agent string                                |
+| Field         | Type     | Description                           |
+| ------------- | -------- | ------------------------------------- |
+| `_id`         | ObjectId |                                       |
+| `user_id`     | string   |                                       |
+| `token_hash`  | string   | SHA-256 hash of the raw refresh token |
+| `expiry_date` | datetime |                                       |
+| `created_at`  | datetime |                                       |
+| `revoked_at`  | datetime | Null = active, set = revoked          |
+| `ip_address`  | string   |                                       |
+| `device_info` | string   | User-Agent string                     |
 
 **Indexes:** `token_hash`, `user_id`
 
@@ -201,16 +202,16 @@ Many-to-many join between `roles` and `permissions`.
 
 ### Collection: `otp_requests`
 
-| Field       | Type     | Description                                          |
-|-------------|----------|------------------------------------------------------|
-| `_id`       | ObjectId |                                                      |
-| `user_id`   | string   |                                                      |
-| `otp`       | string   | 6-digit numeric OTP                                  |
-| `purpose`   | enum     | `forgot_password`, `email_verification`, `mobile_verification` |
-| `expiry_time`| datetime| OTP expires after 10 minutes                        |
-| `attempts`  | int      | Max 5 attempts before OTP is invalidated             |
-| `is_used`   | bool     | Marked true after successful verification            |
-| `created_at`| datetime |                                                      |
+| Field         | Type     | Description                                                    |
+| ------------- | -------- | -------------------------------------------------------------- |
+| `_id`         | ObjectId |                                                                |
+| `user_id`     | string   |                                                                |
+| `otp`         | string   | 6-digit numeric OTP                                            |
+| `purpose`     | enum     | `forgot_password`, `email_verification`, `mobile_verification` |
+| `expiry_time` | datetime | OTP expires after 10 minutes                                   |
+| `attempts`    | int      | Max 5 attempts before OTP is invalidated                       |
+| `is_used`     | bool     | Marked true after successful verification                      |
+| `created_at`  | datetime |                                                                |
 
 **Index:** `(user_id, purpose)`
 
@@ -218,12 +219,12 @@ Many-to-many join between `roles` and `permissions`.
 
 ### Collection: `password_history`
 
-| Field          | Type     | Description                          |
-|----------------|----------|--------------------------------------|
-| `_id`          | ObjectId |                                      |
-| `user_id`      | string   |                                      |
-| `password_hash`| string   | BCrypt hash of old password          |
-| `created_at`   | datetime |                                      |
+| Field           | Type     | Description                 |
+| --------------- | -------- | --------------------------- |
+| `_id`           | ObjectId |                             |
+| `user_id`       | string   |                             |
+| `password_hash` | string   | BCrypt hash of old password |
+| `created_at`    | datetime |                             |
 
 Stores last 5 password hashes per user to prevent reuse.
 
@@ -231,17 +232,17 @@ Stores last 5 password hashes per user to prevent reuse.
 
 ### Collection: `audit_logs`
 
-| Field       | Type     | Description                                      |
-|-------------|----------|--------------------------------------------------|
-| `_id`       | ObjectId |                                                  |
-| `user_id`   | string   | Null for anonymous actions                       |
-| `action`    | string   | `login`, `logout`, `failed_login`, `password_reset`, `password_changed` |
-| `module`    | string   | e.g., `auth`                                     |
-| `ip_address`| string   |                                                  |
-| `device`    | string   | User-Agent                                       |
-| `browser`   | string   |                                                  |
-| `meta`      | object   | Additional context                               |
-| `created_at`| datetime |                                                  |
+| Field        | Type     | Description                                                             |
+| ------------ | -------- | ----------------------------------------------------------------------- |
+| `_id`        | ObjectId |                                                                         |
+| `user_id`    | string   | Null for anonymous actions                                              |
+| `action`     | string   | `login`, `logout`, `failed_login`, `password_reset`, `password_changed` |
+| `module`     | string   | e.g., `auth`                                                            |
+| `ip_address` | string   |                                                                         |
+| `device`     | string   | User-Agent                                                              |
+| `browser`    | string   |                                                                         |
+| `meta`       | object   | Additional context                                                      |
+| `created_at` | datetime |                                                                         |
 
 **Indexes:** `user_id`, `created_at`
 
@@ -267,12 +268,14 @@ Users ──────────── Roles
 ## 5. Design Decisions
 
 ### Why Docker?
+
 - Eliminates "works on my machine" problems — MongoDB version, config, and credentials are locked in `docker-compose.yml`.
 - The `migrator` container runs once, applies all pending migrations, then exits. The `api` container only starts after the migrator completes successfully (`service_completed_successfully` condition).
 - MongoDB data is persisted in a named Docker volume (`mongo_data`) so data survives container restarts.
 - The `mongo` service exposes port `27017` to the host so MongoDB Compass can connect for inspection.
 
 ### Why a Custom Migration Runner Instead of Flyway?
+
 - Flyway is a Java tool designed for SQL databases — it has no native MongoDB support.
 - The custom runner in `app/migrations/migrator.py` replicates Flyway's core contract:
   - Versioned files: `V{n}__{description}.py`
@@ -284,51 +287,61 @@ Users ──────────── Roles
 - Adding a new migration is as simple as creating `V4__your_change.py` in the `versions/` folder.
 
 ### Why MongoDB?
+
 - Schema flexibility is ideal for a SaaS where different hostel owners may have different configurations.
 - Embedded documents and flexible fields make it easy to extend models without migrations.
 - Motor provides async I/O which pairs perfectly with FastAPI.
 
 ### Why ObjectId instead of UUID?
+
 - MongoDB's native ObjectId is more efficient for indexing and querying.
 - It is serialized to a string `id` in all API responses for consistency.
 - UUIDs can be added as a separate `tenant_id` field when needed for cross-database sync.
 
 ### Stateless JWT + Refresh Token Rotation
+
 - Access tokens are short-lived (30 min) and stateless — no DB lookup needed per request.
 - Refresh tokens are stored as SHA-256 hashes in MongoDB — never in plain text.
 - On each refresh, the old token is revoked and a new one is issued (rotation) — prevents token replay attacks.
 
 ### Repository Pattern
+
 - All database operations are isolated in repository classes.
 - Services contain business logic and call repositories.
 - This makes it easy to swap the database layer or write unit tests with mocks.
 
 ### Password Security
+
 - BCrypt with default cost factor (12 rounds).
 - Password strength enforced via regex: min 8 chars, uppercase, lowercase, digit, special character.
 - Last 5 passwords stored as hashes — new password is checked against all of them.
 - On password reset/change, all refresh tokens for the user are revoked, forcing re-login on all devices.
 
 ### Account Lockout
+
 - After 5 consecutive failed login attempts, the account is locked for 30 minutes.
 - Lock is automatically lifted on the next login attempt after the lock period expires (no manual admin action needed for MVP).
 
 ### OTP Design
+
 - 6-digit numeric OTP, expires in 10 minutes.
 - Max 5 verification attempts per OTP record.
 - OTP is marked `is_used = true` after successful verification — cannot be reused.
 - The `forgot_password` flow requires OTP verification inline with `reset-password` — the OTP is verified again at reset time, not just at verify-otp time, preventing replay.
 
 ### Multi-Tenancy Foundation
+
 - `owner_id` on the `users` collection identifies which tenant a user belongs to.
 - All future business collections (Hostels, Students, Employees) should include `owner_id` and `hostel_id` for data isolation.
 - `created_by`, `updated_by`, `deleted_at` are on every document for full audit trail.
 
 ### Soft Deletes
+
 - Users are never hard-deleted. `deleted_at` is set and `status` is set to `deleted`.
 - Queries filter `deleted_at: null` to exclude deleted records.
 
 ### Dev vs Production OTP
+
 - In development, OTP is printed to the console (`[DEV] OTP for ...`).
 - In production, replace the `print` in `otp_service.py` with an SMS/Email provider (e.g., AWS SNS, Twilio, SendGrid).
 
@@ -360,13 +373,13 @@ python -m app.migrations.migrator
 
 ### schema_migrations Collection
 
-| Field        | Type     | Description                          |
-|--------------|----------|--------------------------------------|
-| `version`    | int      | Migration version number (e.g., 1)   |
-| `description`| string   | From filename (e.g., `create_indexes`) |
-| `applied_at` | datetime |                                      |
-| `success`    | bool     |                                      |
-| `error`      | string   | Populated on failure                 |
+| Field         | Type     | Description                            |
+| ------------- | -------- | -------------------------------------- |
+| `version`     | int      | Migration version number (e.g., 1)     |
+| `description` | string   | From filename (e.g., `create_indexes`) |
+| `applied_at`  | datetime |                                        |
+| `success`     | bool     |                                        |
+| `error`       | string   | Populated on failure                   |
 
 ### Adding a New Migration
 
@@ -418,10 +431,10 @@ Host ports exposed:
 
 ### Environment Files
 
-| File          | Used by          | Purpose                              |
-|---------------|------------------|--------------------------------------|
-| `.env`        | Local dev        | Points to `localhost:27017`          |
-| `.env.docker` | Docker Compose   | Points to `mongo:27017` (service name) |
+| File          | Used by        | Purpose                                |
+| ------------- | -------------- | -------------------------------------- |
+| `.env`        | Local dev      | Points to `localhost:27017`            |
+| `.env.docker` | Docker Compose | Points to `mongo:27017` (service name) |
 
 ---
 
@@ -432,7 +445,7 @@ Base URL: `http://localhost:8000`
 ### Authentication Endpoints
 
 | Method | Endpoint                    | Auth Required | Description                        |
-|--------|-----------------------------|---------------|------------------------------------|
+| ------ | --------------------------- | ------------- | ---------------------------------- |
 | POST   | `/api/auth/login`           | No            | Login with email/mobile + password |
 | POST   | `/api/auth/logout`          | Yes           | Revoke refresh token               |
 | POST   | `/api/auth/refresh-token`   | No            | Get new access token               |
@@ -444,7 +457,7 @@ Base URL: `http://localhost:8000`
 ### User & Role Endpoints
 
 | Method | Endpoint           | Auth Required | Description              |
-|--------|--------------------|---------------|--------------------------|
+| ------ | ------------------ | ------------- | ------------------------ |
 | GET    | `/api/users/me`    | Yes           | Get current user profile |
 | GET    | `/api/roles`       | Yes           | List all roles           |
 | GET    | `/api/permissions` | Yes           | List all permissions     |
@@ -452,6 +465,7 @@ Base URL: `http://localhost:8000`
 ### Request/Response Examples
 
 **POST /api/auth/login**
+
 ```json
 // Request
 {
@@ -468,6 +482,7 @@ Base URL: `http://localhost:8000`
 ```
 
 **POST /api/auth/forgot-password**
+
 ```json
 // Request
 { "identifier": "owner@hostel.com" }
@@ -477,6 +492,7 @@ Base URL: `http://localhost:8000`
 ```
 
 **POST /api/auth/verify-otp**
+
 ```json
 // Request
 {
@@ -487,6 +503,7 @@ Base URL: `http://localhost:8000`
 ```
 
 **POST /api/auth/reset-password**
+
 ```json
 // Request
 {
@@ -497,7 +514,8 @@ Base URL: `http://localhost:8000`
 }
 ```
 
-**POST /api/auth/change-password** *(requires Bearer token)*
+**POST /api/auth/change-password** _(requires Bearer token)_
+
 ```json
 {
   "old_password": "Owner@1234",
@@ -507,6 +525,7 @@ Base URL: `http://localhost:8000`
 ```
 
 **POST /api/auth/refresh-token**
+
 ```json
 { "refresh_token": "abc123..." }
 ```
@@ -534,6 +553,7 @@ FastAPI
 ```
 
 **Token Lifecycle:**
+
 ```
 Login → Access Token (30min) + Refresh Token (7 days)
          │
@@ -552,10 +572,10 @@ Login → Access Token (30min) + Refresh Token (7 days)
 
 ### Prerequisites
 
-| Tool           | Version  | Install                                      |
-|----------------|----------|----------------------------------------------|
-| Docker Desktop | Latest   | https://www.docker.com/products/docker-desktop |
-| Python         | 3.11+    | https://www.python.org/downloads/ (local dev only) |
+| Tool           | Version | Install                                            |
+| -------------- | ------- | -------------------------------------------------- |
+| Docker Desktop | Latest  | https://www.docker.com/products/docker-desktop     |
+| Python         | 3.11+   | https://www.python.org/downloads/ (local dev only) |
 
 No MongoDB installation required — it runs as a Docker container.
 
@@ -568,6 +588,7 @@ No MongoDB installation required — it runs as a Docker container.
 1. Download from https://www.docker.com/products/docker-desktop
 2. Install and start Docker Desktop
 3. Verify:
+
 ```bash
 docker --version
 docker compose version
@@ -576,6 +597,7 @@ docker compose version
 **Step 2: Configure secrets (optional)**
 
 Edit `.env.docker` to change passwords and JWT secret before first run:
+
 ```env
 MONGO_ROOT_PASSWORD=your-strong-password
 JWT_SECRET=your-very-long-random-secret
@@ -583,6 +605,7 @@ DEFAULT_OWNER_PASSWORD=YourOwnerPass@123
 ```
 
 Generate a strong JWT secret:
+
 ```bash
 python -c "import secrets; print(secrets.token_hex(64))"
 ```
@@ -594,6 +617,7 @@ docker compose up --build
 ```
 
 This will:
+
 1. Pull MongoDB 7.0 image
 2. Build the API and migrator images
 3. Start MongoDB and wait for it to be healthy
@@ -601,6 +625,7 @@ This will:
 5. Start the API server
 
 Expected output (condensed):
+
 ```
 hostel_mongo     | MongoDB starting...
 hostel_mongo     | Waiting for connections on port 27017
@@ -689,6 +714,7 @@ uvicorn app.main:app --reload
 
 The `.env` file points to `localhost:27017` (no auth) for local dev.
 If using the Docker mongo container locally, update `.env`:
+
 ```env
 MONGO_URI=mongodb://admin:secret123@localhost:27017/hostel_management?authSource=admin
 ```
@@ -713,6 +739,7 @@ MONGO_URI=mongodb://admin:secret123@localhost:27017/hostel_management?authSource
 ### Option B — curl
 
 **Login:**
+
 ```bash
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -720,20 +747,24 @@ curl -X POST http://localhost:8000/api/auth/login \
 ```
 
 **Get current user (replace TOKEN):**
+
 ```bash
 curl http://localhost:8000/api/users/me \
   -H "Authorization: Bearer TOKEN"
 ```
 
 **Forgot Password:**
+
 ```bash
 curl -X POST http://localhost:8000/api/auth/forgot-password \
   -H "Content-Type: application/json" \
   -d "{\"identifier\": \"owner@hostel.com\"}"
 ```
+
 > Check the terminal running uvicorn for the OTP printed as `[DEV] OTP for ...`
 
 **Verify OTP:**
+
 ```bash
 curl -X POST http://localhost:8000/api/auth/verify-otp \
   -H "Content-Type: application/json" \
@@ -741,6 +772,7 @@ curl -X POST http://localhost:8000/api/auth/verify-otp \
 ```
 
 **Reset Password:**
+
 ```bash
 curl -X POST http://localhost:8000/api/auth/reset-password \
   -H "Content-Type: application/json" \
@@ -748,6 +780,7 @@ curl -X POST http://localhost:8000/api/auth/reset-password \
 ```
 
 **Refresh Token:**
+
 ```bash
 curl -X POST http://localhost:8000/api/auth/refresh-token \
   -H "Content-Type: application/json" \
@@ -755,6 +788,7 @@ curl -X POST http://localhost:8000/api/auth/refresh-token \
 ```
 
 **Logout:**
+
 ```bash
 curl -X POST http://localhost:8000/api/auth/logout \
   -H "Authorization: Bearer TOKEN" \
@@ -775,41 +809,41 @@ curl -X POST http://localhost:8000/api/auth/logout \
 
 ### Test Scenarios Checklist
 
-| Scenario                                  | Expected Result                        |
-|-------------------------------------------|----------------------------------------|
-| Login with valid credentials              | 200 + tokens                           |
-| Login with wrong password                 | 401 Invalid username or password       |
-| Login 5 times with wrong password         | 403 Account locked                     |
-| Login with locked account                 | 403 Account is locked                  |
-| Login with inactive user                  | 403 Account is inactive                |
-| Access protected route without token      | 403 Not authenticated                  |
-| Access protected route with expired token | 401 Invalid or expired token           |
-| Refresh with valid refresh token          | 200 + new tokens                       |
-| Refresh with revoked token                | 401 Invalid or revoked refresh token   |
-| Forgot password → OTP in console          | 200 + OTP printed to terminal          |
-| Verify correct OTP                        | 200 OTP verified                       |
-| Verify expired OTP                        | 400 OTP has expired                    |
-| Verify wrong OTP 5 times                  | 400 Maximum OTP attempts exceeded      |
-| Reset password with weak password         | 422 Validation error                   |
-| Reset password reusing old password       | 400 Cannot reuse last 5 passwords      |
-| Change password with wrong old password   | 400 Old password is incorrect          |
+| Scenario                                  | Expected Result                      |
+| ----------------------------------------- | ------------------------------------ |
+| Login with valid credentials              | 200 + tokens                         |
+| Login with wrong password                 | 401 Invalid username or password     |
+| Login 5 times with wrong password         | 403 Account locked                   |
+| Login with locked account                 | 403 Account is locked                |
+| Login with inactive user                  | 403 Account is inactive              |
+| Access protected route without token      | 403 Not authenticated                |
+| Access protected route with expired token | 401 Invalid or expired token         |
+| Refresh with valid refresh token          | 200 + new tokens                     |
+| Refresh with revoked token                | 401 Invalid or revoked refresh token |
+| Forgot password → OTP in console          | 200 + OTP printed to terminal        |
+| Verify correct OTP                        | 200 OTP verified                     |
+| Verify expired OTP                        | 400 OTP has expired                  |
+| Verify wrong OTP 5 times                  | 400 Maximum OTP attempts exceeded    |
+| Reset password with weak password         | 422 Validation error                 |
+| Reset password reusing old password       | 400 Cannot reuse last 5 passwords    |
+| Change password with wrong old password   | 400 Old password is incorrect        |
 
 ---
 
 ## 12. Future Enhancements
 
-| Feature                        | Notes                                                    |
-|--------------------------------|----------------------------------------------------------|
-| Email/SMS OTP delivery         | Integrate AWS SNS, Twilio, or SendGrid in `otp_service.py` |
-| Email verification flow        | Use `email_verification` OTP purpose                     |
-| Mobile verification flow       | Use `mobile_verification` OTP purpose                    |
-| Password expiry policy         | Add `password_expires_at` to users collection            |
-| Two-Factor Authentication      | Add TOTP (Google Authenticator) support                  |
-| Admin user management API      | Create/update/deactivate users                           |
-| TenantId isolation             | Add `tenant_id` to all business collections              |
-| Rate limiting                  | Add `slowapi` middleware for brute-force protection      |
-| HTTPS enforcement              | Configure TLS in production (nginx/ALB)                  |
-| Token blacklist                | Redis-based blacklist for immediate access token revocation |
+| Feature                   | Notes                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| Email/SMS OTP delivery    | Integrate AWS SNS, Twilio, or SendGrid in `otp_service.py`  |
+| Email verification flow   | Use `email_verification` OTP purpose                        |
+| Mobile verification flow  | Use `mobile_verification` OTP purpose                       |
+| Password expiry policy    | Add `password_expires_at` to users collection               |
+| Two-Factor Authentication | Add TOTP (Google Authenticator) support                     |
+| Admin user management API | Create/update/deactivate users                              |
+| TenantId isolation        | Add `tenant_id` to all business collections                 |
+| Rate limiting             | Add `slowapi` middleware for brute-force protection         |
+| HTTPS enforcement         | Configure TLS in production (nginx/ALB)                     |
+| Token blacklist           | Redis-based blacklist for immediate access token revocation |
 
 ---
 
@@ -860,23 +894,24 @@ This section covers deploying the backend to **Railway** with **MongoDB Atlas** 
 
 **Configure environment variables** in Railway → your service → **Variables** tab:
 
-| Variable                      | Value                                      | Notes                              |
-|-------------------------------|--------------------------------------------|------------------------------------|
-| `MONGO_URI`                   | `mongodb+srv://user:pass@cluster/db`       | Full Atlas connection string       |
-| `DB_NAME`                     | `hostel_management`                        |                                    |
-| `JWT_SECRET`                  | *(generate below)*                         | Min 64 chars, random               |
-| `JWT_ALGORITHM`               | `HS256`                                    |                                    |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                       |                                    |
-| `REFRESH_TOKEN_EXPIRE_DAYS`   | `7`                                        |                                    |
-| `OTP_EXPIRE_MINUTES`          | `10`                                       |                                    |
-| `MAX_OTP_ATTEMPTS`            | `5`                                        |                                    |
-| `MAX_FAILED_LOGIN_ATTEMPTS`   | `5`                                        |                                    |
-| `ACCOUNT_LOCK_MINUTES`        | `30`                                       |                                    |
-| `PASSWORD_HISTORY_COUNT`      | `5`                                        |                                    |
-| `DEFAULT_OWNER_PASSWORD`      | `YourStrongOwnerPass@123`                  | Used only by V3 migration          |
-| `APP_ENV`                     | `production`                               |                                    |
+| Variable                      | Value                                | Notes                        |
+| ----------------------------- | ------------------------------------ | ---------------------------- |
+| `MONGO_URI`                   | `mongodb+srv://user:pass@cluster/db` | Full Atlas connection string |
+| `DB_NAME`                     | `hostel_management`                  |                              |
+| `JWT_SECRET`                  | _(generate below)_                   | Min 64 chars, random         |
+| `JWT_ALGORITHM`               | `HS256`                              |                              |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                 |                              |
+| `REFRESH_TOKEN_EXPIRE_DAYS`   | `7`                                  |                              |
+| `OTP_EXPIRE_MINUTES`          | `10`                                 |                              |
+| `MAX_OTP_ATTEMPTS`            | `5`                                  |                              |
+| `MAX_FAILED_LOGIN_ATTEMPTS`   | `5`                                  |                              |
+| `ACCOUNT_LOCK_MINUTES`        | `30`                                 |                              |
+| `PASSWORD_HISTORY_COUNT`      | `5`                                  |                              |
+| `DEFAULT_OWNER_PASSWORD`      | `YourStrongOwnerPass@123`            | Used only by V3 migration    |
+| `APP_ENV`                     | `production`                         |                              |
 
 Generate a strong JWT secret:
+
 ```bash
 python -c "import secrets; print(secrets.token_hex(64))"
 ```
@@ -900,10 +935,13 @@ Migrations must run once after first deploy to seed roles, permissions, and the 
 **Option A — Railway one-off command (recommended)**
 
 In Railway dashboard → your service → **Settings** → **Deploy** → temporarily set the start command to:
+
 ```
 python -m app.migrations.migrator
 ```
+
 Trigger a deploy, wait for it to complete, then restore the start command to:
+
 ```
 uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
@@ -918,6 +956,7 @@ python -m app.migrations.migrator
 ```
 
 Expected output:
+
 ```
 Applying V1__create_indexes ... ✓
 Applying V2__seed_roles_and_permissions ... ✓
@@ -933,6 +972,7 @@ By default `app/main.py` uses `allow_origins=["*"]` which is fine for developmen
 In production, restrict it to your actual frontend URL.
 
 Edit `app/main.py`:
+
 ```python
 app.add_middleware(
     CORSMiddleware,
@@ -956,24 +996,28 @@ Redeploy after this change.
 In the frontend repository, edit the appropriate env file:
 
 **For local dev pointing to Railway backend:**
+
 ```bash
 # .env.local
 VITE_API_BASE_URL=https://your-app.up.railway.app
 ```
 
 **For production frontend build:**
+
 ```bash
 # .env.production
 VITE_API_BASE_URL=https://your-app.up.railway.app
 ```
 
 Then rebuild:
+
 ```bash
 npm run build
 ```
 
 If deploying the frontend to **Vercel**, set the environment variable in:
 Vercel Dashboard → Project → **Settings** → **Environment Variables**:
+
 ```
 VITE_API_BASE_URL = https://your-app.up.railway.app
 ```
@@ -982,38 +1026,43 @@ VITE_API_BASE_URL = https://your-app.up.railway.app
 
 ### Post-Deployment Checklist
 
-| # | Check | How to verify |
-|---|-------|---------------|
-| 1 | Backend health | `GET /health` → `{"status": "ok"}` |
-| 2 | Swagger docs accessible | `https://your-app.up.railway.app/docs` |
-| 3 | Migrations applied | Login with `owner@hostel.com` succeeds |
-| 4 | Atlas connected | No `ServerSelectionTimeoutError` in Railway logs |
-| 5 | CORS configured | Frontend can call API without CORS errors |
-| 6 | JWT secret set | Login returns valid tokens |
-| 7 | Default owner password changed | Update via Change Password after first login |
+| #   | Check                          | How to verify                                    |
+| --- | ------------------------------ | ------------------------------------------------ |
+| 1   | Backend health                 | `GET /health` → `{"status": "ok"}`               |
+| 2   | Swagger docs accessible        | `https://your-app.up.railway.app/docs`           |
+| 3   | Migrations applied             | Login with `owner@hostel.com` succeeds           |
+| 4   | Atlas connected                | No `ServerSelectionTimeoutError` in Railway logs |
+| 5   | CORS configured                | Frontend can call API without CORS errors        |
+| 6   | JWT secret set                 | Login returns valid tokens                       |
+| 7   | Default owner password changed | Update via Change Password after first login     |
 
 ---
 
 ### Troubleshooting Production Issues
 
 **`ServerSelectionTimeoutError` in logs**
+
 - Atlas Network Access → confirm `0.0.0.0/0` is whitelisted
 - Check `MONGO_URI` variable is set correctly in Railway (no extra spaces or quotes)
 
 **`500 Internal Server Error` on login**
+
 - Check Railway logs: Railway dashboard → service → **Logs** tab
 - Most common cause: missing environment variable
 
 **CORS error in browser**
+
 - Confirm your frontend URL is in `allow_origins` in `app/main.py`
 - Redeploy after the change
 - Check the exact origin (with/without trailing slash, http vs https)
 
 **Migrations not applied (login fails with user not found)**
+
 - Run migrations manually using Option B above
 - Check `schema_migrations` collection in Atlas to see which versions were applied
 
 **Railway build fails**
+
 - Confirm `Dockerfile` is in the repo root
 - Check `railway.toml` has correct `dockerfilePath = "Dockerfile"`
 - View build logs in Railway dashboard → **Deployments** tab
@@ -1022,15 +1071,15 @@ VITE_API_BASE_URL = https://your-app.up.railway.app
 
 ## 14. Future Enhancements
 
-| Feature                        | Notes                                                    |
-|--------------------------------|----------------------------------------------------------|
-| Email/SMS OTP delivery         | Integrate AWS SNS, Twilio, or SendGrid in `otp_service.py` |
-| Email verification flow        | Use `email_verification` OTP purpose                     |
-| Mobile verification flow       | Use `mobile_verification` OTP purpose                    |
-| Password expiry policy         | Add `password_expires_at` to users collection            |
-| Two-Factor Authentication      | Add TOTP (Google Authenticator) support                  |
-| Admin user management API      | Create/update/deactivate users                           |
-| TenantId isolation             | Add `tenant_id` to all business collections              |
-| Rate limiting                  | Add `slowapi` middleware for brute-force protection      |
-| HTTPS enforcement              | Configure TLS in production (nginx/ALB)                  |
-| Token blacklist                | Redis-based blacklist for immediate access token revocation |
+| Feature                   | Notes                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| Email/SMS OTP delivery    | Integrate AWS SNS, Twilio, or SendGrid in `otp_service.py`  |
+| Email verification flow   | Use `email_verification` OTP purpose                        |
+| Mobile verification flow  | Use `mobile_verification` OTP purpose                       |
+| Password expiry policy    | Add `password_expires_at` to users collection               |
+| Two-Factor Authentication | Add TOTP (Google Authenticator) support                     |
+| Admin user management API | Create/update/deactivate users                              |
+| TenantId isolation        | Add `tenant_id` to all business collections                 |
+| Rate limiting             | Add `slowapi` middleware for brute-force protection         |
+| HTTPS enforcement         | Configure TLS in production (nginx/ALB)                     |
+| Token blacklist           | Redis-based blacklist for immediate access token revocation |
