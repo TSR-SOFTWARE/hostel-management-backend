@@ -38,13 +38,13 @@ async def forgot_password(body: ForgotPasswordRequest, db=Depends(get_db)):
 
 @router.post("/verify-otp", response_model=MessageResponse)
 async def verify_otp(body: VerifyOtpRequest, db=Depends(get_db)):
-    await OtpService(db).verify_otp(body.identifier, body.otp, body.purpose)
+    await OtpService(db).verify_otp(body.identifier, body.otp, body.purpose, mark_used=False)
     return {"message": "OTP verified successfully"}
 
 
 @router.post("/reset-password", response_model=MessageResponse)
 async def reset_password(body: ResetPasswordRequest, request: Request, db=Depends(get_db)):
-    user_id = await OtpService(db).verify_otp(body.identifier, body.otp, OtpPurpose.forgot_password)
+    user_id = await OtpService(db).verify_otp(body.identifier, body.otp, OtpPurpose.forgot_password, mark_used=True)
     await PasswordService(db).reset_password(user_id, body.new_password, request)
     return {"message": "Password reset successfully. Please login again."}
 

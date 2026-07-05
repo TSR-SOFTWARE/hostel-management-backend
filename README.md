@@ -890,25 +890,30 @@ This section covers deploying the backend to **Railway** with **MongoDB Atlas** 
 
 1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
 2. Select your backend repository
-3. Railway auto-detects the `Dockerfile` and builds it
+3. Railway auto-detects the `Dockerfile` and `railway.toml` and builds it
 
 **Configure environment variables** in Railway → your service → **Variables** tab:
 
-| Variable                      | Value                                | Notes                        |
-| ----------------------------- | ------------------------------------ | ---------------------------- |
-| `MONGO_URI`                   | `mongodb+srv://user:pass@cluster/db` | Full Atlas connection string |
-| `DB_NAME`                     | `hostel_management`                  |                              |
-| `JWT_SECRET`                  | _(generate below)_                   | Min 64 chars, random         |
-| `JWT_ALGORITHM`               | `HS256`                              |                              |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                 |                              |
-| `REFRESH_TOKEN_EXPIRE_DAYS`   | `7`                                  |                              |
-| `OTP_EXPIRE_MINUTES`          | `10`                                 |                              |
-| `MAX_OTP_ATTEMPTS`            | `5`                                  |                              |
-| `MAX_FAILED_LOGIN_ATTEMPTS`   | `5`                                  |                              |
-| `ACCOUNT_LOCK_MINUTES`        | `30`                                 |                              |
-| `PASSWORD_HISTORY_COUNT`      | `5`                                  |                              |
-| `DEFAULT_OWNER_PASSWORD`      | `YourStrongOwnerPass@123`            | Used only by V3 migration    |
-| `APP_ENV`                     | `production`                         |                              |
+| Variable                      | Value                                | Notes                                        |
+| ----------------------------- | ------------------------------------ | -------------------------------------------- |
+| `MONGO_URI`                   | `mongodb+srv://user:pass@cluster/db` | Full Atlas connection string                 |
+| `DB_NAME`                     | `hostel_management`                  |                                              |
+| `JWT_SECRET`                  | _(generate below)_                   | Min 64 chars, random                         |
+| `JWT_ALGORITHM`               | `HS256`                              |                                              |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                 |                                              |
+| `REFRESH_TOKEN_EXPIRE_DAYS`   | `7`                                  |                                              |
+| `OTP_EXPIRE_MINUTES`          | `10`                                 |                                              |
+| `MAX_OTP_ATTEMPTS`            | `5`                                  |                                              |
+| `MAX_FAILED_LOGIN_ATTEMPTS`   | `5`                                  |                                              |
+| `ACCOUNT_LOCK_MINUTES`        | `30`                                 |                                              |
+| `PASSWORD_HISTORY_COUNT`      | `5`                                  |                                              |
+| `DEFAULT_OWNER_PASSWORD`      | `YourStrongOwnerPass@123`            | Used only by V3 migration                    |
+| `APP_ENV`                     | `production`                         |                                              |
+| `SMTP_HOST`                   | `smtp.gmail.com`                     |                                              |
+| `SMTP_PORT`                   | `587`                                |                                              |
+| `SMTP_USER`                   | `your@gmail.com`                     |                                              |
+| `SMTP_PASSWORD`               | _(16-char Gmail App Password)_       | Generate at myaccount.google.com/apppasswords |
+| `EMAIL_FROM`                  | `your@gmail.com`                     |                                              |
 
 Generate a strong JWT secret:
 
@@ -932,7 +937,16 @@ python -c "import secrets; print(secrets.token_hex(64))"
 
 Migrations must run once after first deploy to seed roles, permissions, and the default owner.
 
-**Option A — Railway one-off command (recommended)**
+**Option A — Run locally against Atlas (recommended)**
+
+```bash
+# Set Atlas URI in your local .env temporarily
+MONGO_URI=mongodb+srv://user:pass@cluster/hostel_management
+
+python -m app.migrations.migrator
+```
+
+**Option B — Railway one-off command**
 
 In Railway dashboard → your service → **Settings** → **Deploy** → temporarily set the start command to:
 
@@ -940,19 +954,10 @@ In Railway dashboard → your service → **Settings** → **Deploy** → tempor
 python -m app.migrations.migrator
 ```
 
-Trigger a deploy, wait for it to complete, then restore the start command to:
+Trigger a deploy, wait for it to complete, then restore the start command in `railway.toml` to:
 
 ```
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-**Option B — Run locally against Atlas**
-
-```bash
-# Set Atlas URI in your local .env temporarily
-MONGO_URI=mongodb+srv://user:pass@cluster/hostel_management
-
-python -m app.migrations.migrator
+sh start.sh
 ```
 
 Expected output:
@@ -968,24 +973,23 @@ All migrations applied successfully.
 
 ### Step 4 — Configure CORS for Production
 
-By default `app/main.py` uses `allow_origins=["*"]` which is fine for development.
-In production, restrict it to your actual frontend URL.
-
-Edit `app/main.py`:
+`app/main.py` already has `allow_origins` set to `localhost:3000` and `localhost:5173` for local dev. Add your production frontend URL to the list:
 
 ```python
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",       # local dev
-        "http://localhost:5173",       # vite dev server
-        "https://your-frontend.vercel.app",  # production frontend
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://your-frontend.vercel.app",  # add your production frontend URL
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 ```
+
+> **Note:** `allow_origins=["*"]` cannot be used with `allow_credentials=True` — always list explicit origins.
 
 Redeploy after this change.
 
@@ -1061,11 +1065,23 @@ VITE_API_BASE_URL = https://your-app.up.railway.app
 - Run migrations manually using Option B above
 - Check `schema_migrations` collection in Atlas to see which versions were applied
 
+**`Invalid value for '--port': '$PORT' is not a valid integer`**
+
+- This means Railway's `startCommand` is passing `$PORT` as a literal string to uvicorn
+- Ensure `railway.toml` has `startCommand = "sh start.sh"` — the `start.sh` script handles shell variable expansion
+- Make sure the **Start Command** field in Railway dashboard → Settings → Deploy is **empty** (it overrides `railway.toml`)
+
 **Railway build fails**
 
-- Confirm `Dockerfile` is in the repo root
-- Check `railway.toml` has correct `dockerfilePath = "Dockerfile"`
+- Confirm `Dockerfile` and `railway.toml` are in the repo root
+- Check `railway.toml` has `dockerfilePath = "Dockerfile"` and `startCommand = "sh start.sh"`
 - View build logs in Railway dashboard → **Deployments** tab
+
+**OTP email not received**
+
+- Confirm all 5 SMTP variables are set in Railway Variables tab
+- `SMTP_PASSWORD` must be a Gmail **App Password** (16 chars), not your Gmail login password
+- Generate one at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) — requires 2-Step Verification to be enabled
 
 ---
 
