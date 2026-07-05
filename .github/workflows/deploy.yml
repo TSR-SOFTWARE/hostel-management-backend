@@ -47,3 +47,4 @@ jobs:
           echo "Deployment completed successfully."
           echo " Application URL: $APP_URL"
           curl -f "$APP_URL/health"
+          echo "Health check passed. Application is running."
