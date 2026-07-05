@@ -14,6 +14,8 @@
 10. [Setup & Running](#10-setup--running)
 11. [Testing the APIs](#11-testing-the-apis)
 12. [Future Enhancements](#12-future-enhancements)
+13. [Production Deployment](#13-production-deployment)
+14. [Future Enhancements](#14-future-enhancements)
 
 ---
 
@@ -795,6 +797,230 @@ curl -X POST http://localhost:8000/api/auth/logout \
 ---
 
 ## 12. Future Enhancements
+
+| Feature                        | Notes                                                    |
+|--------------------------------|----------------------------------------------------------|
+| Email/SMS OTP delivery         | Integrate AWS SNS, Twilio, or SendGrid in `otp_service.py` |
+| Email verification flow        | Use `email_verification` OTP purpose                     |
+| Mobile verification flow       | Use `mobile_verification` OTP purpose                    |
+| Password expiry policy         | Add `password_expires_at` to users collection            |
+| Two-Factor Authentication      | Add TOTP (Google Authenticator) support                  |
+| Admin user management API      | Create/update/deactivate users                           |
+| TenantId isolation             | Add `tenant_id` to all business collections              |
+| Rate limiting                  | Add `slowapi` middleware for brute-force protection      |
+| HTTPS enforcement              | Configure TLS in production (nginx/ALB)                  |
+| Token blacklist                | Redis-based blacklist for immediate access token revocation |
+
+---
+
+## 13. Production Deployment
+
+This section covers deploying the backend to **Railway** with **MongoDB Atlas** as the database.
+
+---
+
+### Architecture Overview
+
+```
+┌─────────────────────┐        ┌──────────────────────┐
+│   Frontend          │        │   Backend (Railway)  │
+│   (Vercel / any)    │──────▶ │   FastAPI + Uvicorn  │
+│   VITE_API_BASE_URL │  HTTPS │   PORT assigned by   │
+│   = Railway URL     │        │   Railway at runtime │
+└─────────────────────┘        └──────────┬───────────┘
+                                           │
+                                           │ mongodb+srv://
+                                           ▼
+                               ┌──────────────────────┐
+                               │   MongoDB Atlas      │
+                               │   (cloud cluster)    │
+                               └──────────────────────┘
+```
+
+---
+
+### Step 1 — MongoDB Atlas Setup
+
+1. Go to [cloud.mongodb.com](https://cloud.mongodb.com) and create a free cluster
+2. **Database Access** → Add a database user with username + password
+3. **Network Access** → Add IP `0.0.0.0/0` (allow all) for Railway (Railway IPs are dynamic)
+4. **Connect** → Choose "Connect your application" → copy the connection string:
+   ```
+   mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority
+   ```
+5. Replace `<username>`, `<password>`, `<dbname>` with your values
+
+---
+
+### Step 2 — Deploy Backend to Railway
+
+1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+2. Select your backend repository
+3. Railway auto-detects the `Dockerfile` and builds it
+
+**Configure environment variables** in Railway → your service → **Variables** tab:
+
+| Variable                      | Value                                      | Notes                              |
+|-------------------------------|--------------------------------------------|------------------------------------|
+| `MONGO_URI`                   | `mongodb+srv://user:pass@cluster/db`       | Full Atlas connection string       |
+| `DB_NAME`                     | `hostel_management`                        |                                    |
+| `JWT_SECRET`                  | *(generate below)*                         | Min 64 chars, random               |
+| `JWT_ALGORITHM`               | `HS256`                                    |                                    |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30`                                       |                                    |
+| `REFRESH_TOKEN_EXPIRE_DAYS`   | `7`                                        |                                    |
+| `OTP_EXPIRE_MINUTES`          | `10`                                       |                                    |
+| `MAX_OTP_ATTEMPTS`            | `5`                                        |                                    |
+| `MAX_FAILED_LOGIN_ATTEMPTS`   | `5`                                        |                                    |
+| `ACCOUNT_LOCK_MINUTES`        | `30`                                       |                                    |
+| `PASSWORD_HISTORY_COUNT`      | `5`                                        |                                    |
+| `DEFAULT_OWNER_PASSWORD`      | `YourStrongOwnerPass@123`                  | Used only by V3 migration          |
+| `APP_ENV`                     | `production`                               |                                    |
+
+Generate a strong JWT secret:
+```bash
+python -c "import secrets; print(secrets.token_hex(64))"
+```
+
+4. Railway assigns a public URL automatically — find it under **Settings → Domains**:
+   ```
+   https://hostel-management-backend-production-xxxx.up.railway.app
+   ```
+5. Verify the deployment:
+   ```bash
+   curl https://your-app.up.railway.app/health
+   # Expected: {"status": "ok"}
+   ```
+
+---
+
+### Step 3 — Run Migrations on Railway
+
+Migrations must run once after first deploy to seed roles, permissions, and the default owner.
+
+**Option A — Railway one-off command (recommended)**
+
+In Railway dashboard → your service → **Settings** → **Deploy** → temporarily set the start command to:
+```
+python -m app.migrations.migrator
+```
+Trigger a deploy, wait for it to complete, then restore the start command to:
+```
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+**Option B — Run locally against Atlas**
+
+```bash
+# Set Atlas URI in your local .env temporarily
+MONGO_URI=mongodb+srv://user:pass@cluster/hostel_management
+
+python -m app.migrations.migrator
+```
+
+Expected output:
+```
+Applying V1__create_indexes ... ✓
+Applying V2__seed_roles_and_permissions ... ✓
+Applying V3__seed_default_owner ... ✓
+All migrations applied successfully.
+```
+
+---
+
+### Step 4 — Configure CORS for Production
+
+By default `app/main.py` uses `allow_origins=["*"]` which is fine for development.
+In production, restrict it to your actual frontend URL.
+
+Edit `app/main.py`:
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",       # local dev
+        "http://localhost:5173",       # vite dev server
+        "https://your-frontend.vercel.app",  # production frontend
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Redeploy after this change.
+
+---
+
+### Step 5 — Configure Frontend to Point to Railway
+
+In the frontend repository, edit the appropriate env file:
+
+**For local dev pointing to Railway backend:**
+```bash
+# .env.local
+VITE_API_BASE_URL=https://your-app.up.railway.app
+```
+
+**For production frontend build:**
+```bash
+# .env.production
+VITE_API_BASE_URL=https://your-app.up.railway.app
+```
+
+Then rebuild:
+```bash
+npm run build
+```
+
+If deploying the frontend to **Vercel**, set the environment variable in:
+Vercel Dashboard → Project → **Settings** → **Environment Variables**:
+```
+VITE_API_BASE_URL = https://your-app.up.railway.app
+```
+
+---
+
+### Post-Deployment Checklist
+
+| # | Check | How to verify |
+|---|-------|---------------|
+| 1 | Backend health | `GET /health` → `{"status": "ok"}` |
+| 2 | Swagger docs accessible | `https://your-app.up.railway.app/docs` |
+| 3 | Migrations applied | Login with `owner@hostel.com` succeeds |
+| 4 | Atlas connected | No `ServerSelectionTimeoutError` in Railway logs |
+| 5 | CORS configured | Frontend can call API without CORS errors |
+| 6 | JWT secret set | Login returns valid tokens |
+| 7 | Default owner password changed | Update via Change Password after first login |
+
+---
+
+### Troubleshooting Production Issues
+
+**`ServerSelectionTimeoutError` in logs**
+- Atlas Network Access → confirm `0.0.0.0/0` is whitelisted
+- Check `MONGO_URI` variable is set correctly in Railway (no extra spaces or quotes)
+
+**`500 Internal Server Error` on login**
+- Check Railway logs: Railway dashboard → service → **Logs** tab
+- Most common cause: missing environment variable
+
+**CORS error in browser**
+- Confirm your frontend URL is in `allow_origins` in `app/main.py`
+- Redeploy after the change
+- Check the exact origin (with/without trailing slash, http vs https)
+
+**Migrations not applied (login fails with user not found)**
+- Run migrations manually using Option B above
+- Check `schema_migrations` collection in Atlas to see which versions were applied
+
+**Railway build fails**
+- Confirm `Dockerfile` is in the repo root
+- Check `railway.toml` has correct `dockerfilePath = "Dockerfile"`
+- View build logs in Railway dashboard → **Deployments** tab
+
+---
+
+## 14. Future Enhancements
 
 | Feature                        | Notes                                                    |
 |--------------------------------|----------------------------------------------------------|

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, users
+from app.api import auth, users, admin
 
 app = FastAPI(
     title="Hostel Management API",
@@ -18,6 +18,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(admin.router)
 
 
 @app.get("/health")

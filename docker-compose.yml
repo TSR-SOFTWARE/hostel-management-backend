@@ -1,38 +1,11 @@
 services:
 
-  mongo:
-    image: mongo:7.0
-    container_name: hostel_mongo
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: secret123
-      MONGO_INITDB_DATABASE: hostel_management
-    volumes:
-      - mongo_data:/data/db
-    ports:
-      - "27017:27017"
-    healthcheck:
-      test:
-        - CMD
-        - mongosh
-        - --quiet
-        - --eval
-        - "db.adminCommand('ping').ok"
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 30s
-
   migrator:
     build:
       context: .
       dockerfile: Dockerfile.migrator
     container_name: hostel_migrator
     env_file: .env.docker
-    depends_on:
-      mongo:
-        condition: service_healthy
     restart: on-failure:5
 
   api:
@@ -53,6 +26,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-volumes:
-  mongo_data:

@@ -19,7 +19,7 @@ def _hash_token(token: str) -> str:
 
 def _get_client_info(request: Request) -> dict:
     return {
-        "ip": request.client.host if request.client else None,
+        "ip_address": request.client.host if request.client else None,
         "device": request.headers.get("user-agent", ""),
     }
 
@@ -66,7 +66,7 @@ class AuthService:
 
         expiry = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         await self.token_repo.insert(
-            refresh_token_document(user["id"], refresh_token_hash, expiry, client["ip"], client["device"])
+            refresh_token_document(user["id"], refresh_token_hash, expiry, client["ip_address"], client["device"])
         )
         await self.audit_repo.insert(audit_log_document(user["id"], "login", "auth", **client))
 

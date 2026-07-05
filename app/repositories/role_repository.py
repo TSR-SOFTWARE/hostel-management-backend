@@ -48,3 +48,24 @@ class RoleRepository:
 
     async def insert_role_permission(self, doc: dict):
         await self.role_permissions.insert_one(doc)
+
+    async def get_role_permission_ids(self, role_id: str) -> list:
+        cursor = self.role_permissions.find({"role_id": role_id})
+        return [doc["permission_id"] async for doc in cursor]
+
+    async def set_role_permissions(self, role_id: str, permission_ids: list):
+        await self.role_permissions.delete_many({"role_id": role_id})
+        if permission_ids:
+            docs = [{"role_id": role_id, "permission_id": pid} for pid in permission_ids]
+            await self.role_permissions.insert_many(docs)
+
+    async def update_role(self, role_id: str, fields: dict):
+        from bson import ObjectId
+        from datetime import datetime, timezone
+        fields["updated_at"] = datetime.now(timezone.utc)
+        await self.roles.update_one({"_id": ObjectId(role_id)}, {"$set": fields})
+
+    async def delete_role(self, role_id: str):
+        from bson import ObjectId
+        await self.roles.delete_one({"_id": ObjectId(role_id)})
+        await self.role_permissions.delete_many({"role_id": role_id})
